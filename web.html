@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="sv" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Körkortsteori 2024 Pro - Komplett Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --background-light: #f1f5f9;
+            --background-dark: #1e293b;
+            --text-light: #1e293b;
+            --text-dark: #e2e8f0;
+            --card-light: #ffffff;
+            --card-dark: #334155;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-light);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dark body {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+        .sidebar {
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .main-content section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .main-content section.active {
+            display: block;
+        }
+        .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 700;
+        }
+        .card {
+            background-color: var(--card-light);
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUpFadeIn 0.5s forwards;
+        }
+        .dark .card {
+            background-color: var(--card-dark);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        .dark .card:hover {
+             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2), 0 4px 6px -2px rgba(0,0,0,0.15);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUpFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .quiz-option {
+            transition: all 0.2s ease-in-out;
+        }
+        .quiz-option.correct {
+            background-color: #22c55e !important;
+            color: white;
+            border-color: #16a34a;
+            transform: scale(1.02);
+        }
+        .quiz-option.incorrect {
+            background-color: #ef4444 !important;
+            color: white;
+            border-color: #dc2626;
+        }
+        .theme-switch {
+            transform: scale(1.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-80 bg-white dark:bg-slate-800 shadow-lg p-6 shrink-0 md:sticky top-0 sidebar transition-colors duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">Teori Pro</h1>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="sun" class="text-yellow-500"></i>
+                    <label for="theme-switch" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="theme-switch" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                     <i data-lucide="moon" class="text-slate-400"></i>
+                </div>
+            </div>
+
+            <nav id="navigation" class="space-y-1">
+                <!-- Navigation links will be dynamically inserted here -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto">
+            <div id="main-content" class="max-w-5xl mx-auto">
+                <!-- Content sections will be dynamically inserted here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        const contentData = {
+            "Trafikregler": {
+                icon: "traffic-cone",
+                chapters: {
+                    "inledning": "Inledning", "korfalt": "Körfält", "vajningsregler": "Väjningsregler", "passager": "Passager", "cirkulationsplats": "Cirkulationsplats", "parkering": "Stanna & Parkera", "landsvag": "Landsväg", "motorvag": "Motorväg & Motortrafikled", "omkorningar": "Omkörningar", "jarnvag": "Järnvägskorsningar", "speciella-gator": "Speciella gator", "vinter": "Vinter"
+                }
+            },
+            "Människan": {
+                icon: "user",
+                chapters: {
+                    "inlarning": "Inlärning & Mognad", "alkohol": "Alkohol & Droger", "trotthet": "Trötthet", "synen": "Synen", "nedsatt-formaga": "Nedsatt förmåga", "barn": "Barn", "trafikolyckor": "Trafikolyckor"
+                }
+            },
+            "Fordonet": {
+                icon: "car",
+                chapters: {
+                    "fordonsindelning": "Indelning av fordon", "strackor": "Sträckor", "dack": "Däck", "styrning": "Styrning", "bromsar": "Bromsar", "krocksakerhet": "Krocksäkerhet", "bilbarnstolar": "Bilbarnstolar", "langd-bredd": "Längd & Bredd", "last": "Last", "belysning": "Belysning", "sakerhetskontroll": "Säkerhetskontroller", "besiktning": "Besiktning", "service": "Service", "registreringsbevis": "Registreringsbevis", "forsakring": "Försäkring"
+                }
+            },
+            "Miljö": {
+                icon: "leaf",
+                chapters: {
+                    "miljo": "Miljöpåverkan", "sparsam-korning": "Sparsam körning", "drivmedel": "Drivmedel"
+                }
+            },
+            "Övrigt": {
+                icon: "more-horizontal",
+                chapters: {
+                    "vagmarken": "Vägmärken", "rattsfall": "Rättsfall", "kunskapstest": "Kunskapstest"
+                }
+            }
+        };
+
+        const sectionsContent = {
+            "inledning": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Grundregler & Definitioner</h2>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3 flex items-center"><i data-lucide="book-open" class="mr-3 text-blue-500"></i>Trafikens Grundregler</h3><ul class="list-disc list-inside space-y-2 text-lg"><li>Visa omsorg och varsamhet.</li><li>Visa hänsyn mot de som är på och bor i närheten av vägen.</li><li>Visa barn, skolpatruller, äldre och de med funktionsnedsättning särskild hänsyn.</li><li>Inte störa eller hindra i onödan.</li><li>Det finns inga rättigheter, bara gemensamma skyldigheter.</li></ul></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3 flex items-center"><i data-lucide="road" class="mr-3 text-blue-500"></i>Vägens Delar</h3><img src="https://images.unsplash.com/photo-1543357285-15a3c25971e4?q=80&w=1200&auto=format&fit=crop" alt="[Bild på en väg med tydliga markeringar för körfält och vägren]" class="w-full h-auto rounded-lg mb-4 object-cover max-h-96"><ul class="list-disc list-inside space-y-2 text-lg"><li><strong>Väg:</strong> Allt tillsammans (körbana, körfält och vägren).</li><li><strong>Körbana:</strong> Båda körfälten tillsammans.</li><li><strong>Körfält:</strong> Där bilarna åker. Oftast ett i varje riktning.</li><li><strong>Vägren:</strong> Området utanför körbanan, i första hand för oskyddade trafikanter.</li></ul></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3 flex items-center"><i data-lucide="arrow-down-up" class="mr-3 text-blue-500"></i>Rangordning i Trafiken</h3><p class="mb-4 text-lg">Om du får flera instruktioner samtidigt, ska du följa denna rangordning:</p><ol class="list-decimal list-inside space-y-2 text-lg font-bold"><li>Polisens tecken</li><li>Trafiksignaler (trafikljus)</li><li>Vägmärken</li><li>Regler (t.ex. högerregeln)</li></ol></div>
+            `,
+            "vajningsregler": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Väjningsregler</h2>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Högerregeln</h3><p class="text-lg">Gäller i korsningar utan andra anvisningar. Du ska lämna företräde åt trafik från höger.</p><p class="mt-4 text-lg bg-blue-100 dark:bg-blue-900/50 border-l-4 border-blue-500 p-4 rounded-r-lg"><strong>Gäller inte:</strong> Vid huvudled, cirkulationsplats, stopp-/väjningsplikt, eller utfart.</p></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Huvudled</h3><p class="text-lg">Korsande trafik har väjningsplikt mot dig. När du kör in på en huvudled har du väjningsplikt.</p></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Stopplikt vs. Väjningsplikt</h3><div class="grid md:grid-cols-2 gap-6 text-lg"><div><h4 class="font-bold text-xl">Väjningsplikt</h4><p>Sakta in, stanna vid behov. Du behöver inte stanna om vägen är fri.</p></div><div><h4 class="font-bold text-xl">Stopplikt</h4><p>Du måste alltid stanna helt vid stopplinjen, oavsett trafik.</p></div></div></div>
+            `,
+            "parkering": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Stanna & Parkera</h2>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Förbud att Stanna & Parkera</h3><ul class="list-disc list-inside space-y-2 text-lg"><li>Inom <strong>10 meter före</strong> ett övergångsställe.</li><li>I en vägkorsning och inom <strong>10 meter</strong> från den.</li><li>I tunnel, cirkulationsplats, kollektivkörfält.</li><li>På motorväg och motortrafikled.</li></ul></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Förbud att Parkera (men tillåtet att stanna)</h3><ul class="list-disc list-inside space-y-2 text-lg"><li>På huvudled (utan P-skylt).</li><li>Inom <strong>30 meter</strong> från en järnvägskorsning.</li><li>Framför en utfart.</li></ul></div>
+                 <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Tidsangivelser</h3><p class="text-lg">På P-skyltar betyder: <strong>Svarta siffror</strong> = Vardagar, <strong>(Parentes)</strong> = Lördag/dag före helg, <strong>Röda siffror</strong> = Söndag/helgdag.</p></div>
+            `,
+            "miljo": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Miljö & Sparsam Körning</h2>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Sparsam Körning (Eco-Driving)</h3><ul class="list-disc list-inside space-y-2 text-lg"><li>Kör på så hög växel som möjligt.</li><li>Hoppa över växlar (t.ex. 2:an till 4:an).</li><li>Motorbromsa genom att släppa gasen helt.</li><li>Undvik onödiga stopp, planera din körning.</li><li>Ta bort takbox när den inte används.</li></ul></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Växthuseffekten</h3><p class="text-lg">Förbränning av fossila bränslen som bensin och diesel släpper ut koldioxid (CO2). Detta gör atmosfären tjockare, vilket stänger inne värme och leder till global uppvärmning.</p></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Katalysator & Motorvärmare</h3><p class="text-lg">En <strong>katalysator</strong> omvandlar 80-95% av de skadliga avgaserna till koldioxid och vatten. En <strong>motorvärmare</strong> minskar bränsleförbrukning och slitage vid kallstart. Använd den ca 1 timme vid 0°C.</p></div>
+            `,
+            "rattsfall": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Intressanta Rättsfall</h2>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Väjningsplikt & Placering</h3><p class="text-lg">En bilist (A) svängde höger i en högerregelskorsning. En annan bilist (B) körde om en parkerad bil och befann sig därför på fel sida av vägen. En krock skedde. Domstolen ansåg att båda var vållande: A för att inte ha iakttagit väjningsplikt mot ALL trafik (även den i fel körfält), och B för att ha befunnit sig på fel sida av vägen i ett osäkert läge.</p></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Stannande vs. Parkering</h3><p class="text-lg">En förare ställde sin bil för att leverera gods 200-300 meter bort. Hovrätten ansåg att detta var parkering, inte stannande för avlastning, eftersom aktiviteten inte skedde i fordonets omedelbara närhet.</p></div>
+                <div class="card space-y-4 p-8 rounded-xl shadow-lg"><h3 class="text-2xl font-bold mb-3">Smitning</h3><p class="text-lg">En förare som stänkte ner fotgängare och sedan körde vidare dömdes för smitning. I ett annat fall backade en förare på en parkerad bil, såg inga skador och åkte iväg. Även detta dömdes som smitning, då man måste kontakta ägaren eller polisen.</p></div>
+            `,
+            // Add all other sections here... just keeping it short for brevity
+        };
+        
+        // --- QUIZ DATA ---
+        const quizData = [
+            { question: "Du närmar dig en korsning där det lyser grönt, men det finns även en stoppskylt. Vad gäller?", options: ["Du ska stanna på grund av stoppskylten.", "Du ska köra eftersom trafiksignalen gäller före vägmärken.", "Du ska sakta in och tillämpa högerregeln.", "Du ska stanna om det är mycket trafik."], answer: "Du ska köra eftersom trafiksignalen gäller före vägmärken.", explanation: "Enligt rangordningen i trafiken gäller trafiksignaler före vägmärken. Stoppskylten gäller endast om trafikljuset är ur funktion." },
+            { question: "Vilket är det minsta tillåtna mönsterdjupet på vinterdäck vid vinterväglag?", options: ["1,6 mm", "2,5 mm", "3,0 mm", "5,0 mm"], answer: "3,0 mm", explanation: "Minsta tillåtna mönsterdjup för vinterdäck är 3,0 mm vid vinterväglag. För sommardäck är gränsen 1,6 mm." },
+            { question: "Du vill svänga vänster på en landsväg. Vad anses vara den största faran?", options: ["Att bli påkörd av mötande trafik.", "Att få motorstopp i korsningen.", "Att bli påkörd bakifrån.", "Att inte se fotgängare."], answer: "Att bli påkörd bakifrån.", explanation: "Att svänga vänster på landsväg är riskfyllt eftersom du måste sänka farten, vilket ökar risken för att bli påkörd av snabbare trafik bakifrån." },
+            { question: "Du kör på en väg med 50 km/h som hastighetsbegränsning. En buss framför dig vid en hållplats blinkar för att köra ut. Vad gäller?", options: ["Du ska lämna företräde åt bussen.", "Bussen ska lämna företräde åt dig.", "Den som kommer först kör först.", "Du ska tuta för att varna bussen."], answer: "Du ska lämna företräde åt bussen.", explanation: "Enligt bussregeln ska du lämna företräde åt en buss som blinkar ut från en hållplats om hastighetsbegränsningen är 50 km/h eller lägre." },
+            { question: "Vad innebär 'tunnelseende'?", options: ["Att du bara ser det som är rakt framför dig.", "Att du ser extra bra i mörker.", "Att du blir bländad av mötande trafik.", "Att du måste använda glasögon."], answer: "Att du bara ser det som är rakt framför dig.", explanation: "Tunnelseende innebär att ditt periferiseende försämras och du missar saker som händer vid sidorna av vägen. Det kan orsakas av trötthet, stress och alkohol." },
+        ];
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const navigation = document.getElementById('navigation');
+            const mainContent = document.getElementById('main-content');
+            
+            // Populate navigation and content sections
+            for (const [category, data] of Object.entries(contentData)) {
+                navigation.innerHTML += `<h3 class="font-bold text-gray-500 dark:text-gray-400 uppercase text-sm mt-4 mb-2 px-4 flex items-center"><i data-lucide="${data.icon}" class="w-4 h-4 mr-2"></i>${category}</h3>`;
+                for (const [id, title] of Object.entries(data.chapters)) {
+                    const isTest = id === 'kunskapstest';
+                    navigation.innerHTML += `<a href="#" data-target="${id}" class="nav-link block w-full text-left font-semibold px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition-colors duration-200 ${isTest ? 'mt-4 border-t-2 border-slate-200 dark:border-slate-700 pt-3' : ''}">${title}</a>`;
+                    mainContent.innerHTML += `<section id="${id}" class="space-y-6">${sectionsContent[id] || `<h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">${title}</h2><div class="card p-8 rounded-xl shadow-lg"><p>Innehåll för '${title}' kommer snart...</p></div>`}</section>`;
+                }
+            }
+
+            lucide.createIcons(); // Re-run lucide to render new icons
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.main-content section');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = `slideUpFadeIn 0.6s ${entry.target.dataset.delay || '0s'} forwards ease-out`;
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            function showSection(targetId, isInitial = false) {
+                sections.forEach(section => {
+                    const isActive = section.id === targetId;
+                    section.classList.toggle('active', isActive);
+                    if (isActive) {
+                        const cards = section.querySelectorAll('.card');
+                        cards.forEach((card, index) => {
+                            card.style.opacity = 0; // Reset for animation
+                            card.style.transform = 'translateY(20px)';
+                            card.dataset.delay = `${index * 0.1}s`;
+                            observer.observe(card);
+                        });
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.dataset.target === targetId);
+                });
+                if (!isInitial) {
+                    window.scrollTo(0, 0);
+                }
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = e.currentTarget.dataset.target;
+                    showSection(targetId);
+                    if (targetId === 'kunskapstest') {
+                        loadQuiz();
+                    }
+                });
+            });
+
+            // Theme switcher logic
+            const themeSwitch = document.getElementById('theme-switch');
+            const htmlEl = document.documentElement;
+
+            // On page load, check localStorage
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlEl.classList.add('dark');
+                themeSwitch.checked = true;
+            } else {
+                htmlEl.classList.remove('dark');
+                themeSwitch.checked = false;
+            }
+
+            themeSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    htmlEl.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    htmlEl.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+
+            // Initial section display
+            showSection('inledning', true);
+        });
+
+        // --- QUIZ LOGIC ---
+        const quizContainer = document.getElementById('kunskapstest'); // Target the section
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        function loadQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            const quizWrapper = document.createElement('div');
+            quizWrapper.id = 'quiz-container';
+            quizWrapper.className = 'card p-8 rounded-xl shadow-lg';
+            quizContainer.innerHTML = '<h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Kunskapstest</h2>';
+            quizContainer.appendChild(quizWrapper);
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const container = document.getElementById('quiz-container');
+            const questionData = quizData[currentQuestionIndex];
+            container.innerHTML = `<div class="mb-6"><p class="text-xl font-semibold">${currentQuestionIndex + 1}. ${questionData.question}</p></div><div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">${questionData.options.map(option => `<button class="quiz-option text-left p-4 border-2 border-slate-300 dark:border-slate-600 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:border-blue-400">${option}</button>`).join('')}</div><div id="feedback" class="mt-6"></div>`;
+            container.querySelectorAll('.quiz-option').forEach(option => {
+                option.addEventListener('click', selectAnswer);
+            });
+        }
+
+        function selectAnswer(e) {
+            const selectedButton = e.target.closest('button');
+            const questionData = quizData[currentQuestionIndex];
+            const isCorrect = selectedButton.innerText === questionData.answer;
+
+            if (isCorrect) { score++; }
+            
+            document.querySelectorAll('.quiz-option').forEach(btn => {
+                if (btn.innerText === questionData.answer) btn.classList.add('correct');
+                btn.disabled = true;
+            });
+            
+            if(!isCorrect) selectedButton.classList.add('incorrect');
+
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.innerHTML = `<div class="p-4 rounded-lg ${isCorrect ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}"><p class="font-bold">${isCorrect ? 'Rätt svar!' : 'Fel svar.'}</p><p>${questionData.explanation}</p></div><button id="next-question" class="mt-6 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-transform hover:scale-105">${currentQuestionIndex < quizData.length - 1 ? 'Nästa fråga' : 'Se resultat'}</button>`;
+            document.getElementById('next-question').addEventListener('click', nextQuestion);
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) showQuestion();
+            else showResults();
+        }
+        
+        function showResults() {
+             document.getElementById('quiz-container').innerHTML = `<h3 class="text-3xl font-bold mb-4">Ditt Resultat</h3><p class="text-xl mb-6">Du fick ${score} av ${quizData.length} rätt.</p><button id="restart-quiz" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-transform hover:scale-105">Gör om testet</button>`;
+            document.getElementById('restart-quiz').addEventListener('click', loadQuiz);
+        }
+    </script>
+</body>
+</html>
