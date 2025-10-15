@@ -123,6 +123,15 @@
         .draggable-car:active { cursor: grabbing; }
         .drop-zone { border: 2px dashed var(--border-dark); transition: all 0.2s; }
         .drop-zone.drag-over { background-color: rgba(59, 130, 246, 0.2); border-style: solid; }
+
+        #parking-simulator-canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            background-color: #718096;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -201,7 +210,14 @@
             },
             "Öva & Testa": {
                 icon: "graduation-cap",
-                chapters: { "spel-vagmarken": "Spel: Vägmärken", "spel-parkering": "Spel: Parkeringsscenarier", "spel-ratt-parkering": "Spel: Rätt Parkering", "spel-situationer": "Spel: Trafiksituationer", "kunskapstest": "Slutprov" }
+                chapters: { 
+                    "spel-vagmarken": "Spel: Vägmärken", 
+                    "spel-parkering": "Spel: Parkeringsscenarier", 
+                    "spel-ratt-parkering": "Spel: Dra & Parkera", 
+                    "spel-situationer": "Spel: Trafiksituationer",
+                    "spel-parkeringssimulator": "Spel: Parkeringssimulator",
+                    "kunskapstest": "Slutprov" 
+                }
             }
         };
 
@@ -363,7 +379,7 @@
                 </div>
             `,
              "spel-ratt-parkering": `
-                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Spel: Rätt Parkering</h2>
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Spel: Dra & Parkera</h2>
                 <div class="card p-8 rounded-xl shadow-lg">
                     <div id="interactive-parking-game-container"></div>
                     <div id="interactive-parking-game-feedback" class="mt-4 text-center font-bold min-h-[100px]"></div>
@@ -378,6 +394,15 @@
                     <button id="restart-situation-game" class="action-btn mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Ny situation</button>
                 </div>
              `,
+             "spel-parkeringssimulator": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Spel: Parkeringssimulator</h2>
+                <div class="card p-8 rounded-xl shadow-lg">
+                    <p class="text-center mb-2">Använd <strong>WASD</strong> för att köra och <strong>Mellanslag</strong> för att bromsa.</p>
+                    <canvas id="parking-simulator-canvas"></canvas>
+                    <div id="parking-simulator-feedback" class="mt-4 text-center font-bold text-xl h-6"></div>
+                    <button id="restart-parking-simulator" class="action-btn mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Starta om</button>
+                </div>
+             `
         };
 
         const quizData = [
@@ -392,6 +417,9 @@
         ];
 
         // --- APP LOGIC ---
+        // Global function to stop game loops, defined outside other functions
+        let stopCurrentGameLoop = () => {};
+
         document.addEventListener('DOMContentLoaded', function() {
             const navigation = document.getElementById('navigation');
             const mainContent = document.getElementById('main-content');
@@ -460,16 +488,17 @@
             }
 
             function showSection(targetId) {
+                // Clean up previous game loops before showing the new section
+                stopCurrentGameLoop();
+
                 document.querySelectorAll('.main-content section').forEach(s => s.classList.remove('active'));
                 const activeSection = document.getElementById(targetId);
                 if (activeSection) {
                     activeSection.classList.add('active');
-                    // Stagger card animations
                     activeSection.querySelectorAll('.card').forEach((card, index) => {
                          card.style.animationDelay = `${index * 0.1}s`;
                     });
                 }
-
 
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 const activeLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
@@ -488,11 +517,13 @@
                 window.scrollTo(0, 0);
                 lucide.createIcons();
 
+                // Initialize the correct game/quiz for the new section
                 if (targetId === 'kunskapstest') loadQuiz();
                 if (targetId === 'spel-vagmarken') setupMemoryGame();
                 if (targetId === 'spel-parkering') setupParkingGame();
                 if (targetId === 'spel-ratt-parkering') setupInteractiveParkingGame();
                 if (targetId === 'spel-situationer') setupSituationGame();
+                if (targetId === 'spel-parkeringssimulator') setupParkingSimulator();
             }
             
             resetProgressBtn.addEventListener('click', () => {
@@ -593,7 +624,7 @@
             document.getElementById('restart-parking-game').addEventListener('click',loadScenario);loadScenario();
         }
         
-        // --- INTERACTIVE PARKING GAME LOGIC ---
+        // --- INTERACTIVE DRAG & DROP PARKING GAME LOGIC ---
         function setupInteractiveParkingGame() {
             const container = document.getElementById('interactive-parking-game-container');
             const feedbackEl = document.getElementById('interactive-parking-game-feedback');
@@ -695,7 +726,170 @@
             document.getElementById('restart-situation-game').addEventListener('click', loadSituation);
             loadSituation();
         }
+        
+        // --- PARKING SIMULATOR GAME LOGIC ---
+        function setupParkingSimulator() {
+            const canvas = document.getElementById('parking-simulator-canvas');
+            const feedbackEl = document.getElementById('parking-simulator-feedback');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let animationFrameId;
+            
+            // This function will be assigned to the global stopper
+            const stopGameLoop = () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                 window.removeEventListener('resize', initGame);
+                 document.removeEventListener('keydown', keydownHandler);
+                 document.removeEventListener('keyup', keyupHandler);
+            };
+            
+            // Assign to the global stopper so it can be called from showSection
+            stopCurrentGameLoop = stopGameLoop;
 
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                if (!container) return;
+                const ratio = 16 / 9;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientWidth / ratio;
+            }
+
+            let car, parkingSpot, otherCars, walls, keys, gameState;
+
+            function initGame() {
+                stopGameLoop(); // Stop previous loop if any
+                resizeCanvas();
+                
+                const carWidth = 50;
+                const carHeight = 25;
+
+                car = { x: canvas.width * 0.15, y: canvas.height * 0.8, width: carWidth, height: carHeight, angle: -Math.PI / 2, speed: 0, turnSpeed: 0.04, acceleration: 0.1, friction: 0.98, brake: 0.3 };
+                parkingSpot = { x: canvas.width * 0.75, y: canvas.height * 0.1, width: carWidth * 1.4, height: carHeight * 2.5 };
+                otherCars = [
+                    { x: parkingSpot.x - parkingSpot.width * 1.1, y: parkingSpot.y, width: carWidth, height: carHeight * 2.2 },
+                    { x: parkingSpot.x + parkingSpot.width * 1.1, y: parkingSpot.y, width: carWidth, height: carHeight * 2.2 }
+                ];
+                walls = [
+                    { x: 0, y: 0, width: canvas.width, height: 1 }, // Top
+                    { x: 0, y: canvas.height - 1, width: canvas.width, height: 1 }, // Bottom
+                    { x: 0, y: 0, width: 1, height: canvas.height }, // Left
+                    { x: canvas.width - 1, y: 0, width: 1, height: canvas.height }, // Right
+                    { x: otherCars[0].x, y: otherCars[0].y, width: otherCars[0].width, height: otherCars[0].height },
+                    { x: otherCars[1].x, y: otherCars[1].y, width: otherCars[1].width, height: otherCars[1].height }
+                ];
+
+                keys = {};
+                gameState = { over: false, win: false };
+                feedbackEl.textContent = 'Parkera i den gröna rutan!';
+                feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-slate-500 dark:text-slate-400';
+                
+                gameLoop();
+            }
+
+            const restartButton = document.getElementById('restart-parking-simulator');
+            if(restartButton) {
+                const newButton = restartButton.cloneNode(true);
+                restartButton.parentNode.replaceChild(newButton, restartButton);
+                newButton.addEventListener('click', initGame);
+            }
+            
+            const keydownHandler = (e) => {
+                 if(e.code.startsWith('Key') || e.code === 'Space') {
+                    keys[e.code] = true;
+                    if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') e.preventDefault();
+                 }
+            };
+            const keyupHandler = (e) => { keys[e.code] = false; };
+
+            document.addEventListener('keydown', keydownHandler);
+            document.addEventListener('keyup', keyupHandler);
+            window.addEventListener('resize', initGame);
+
+            function getCarCorners(obj) {
+                const { x, y, width, height, angle } = obj;
+                const halfW = width / 2;
+                const halfH = height / 2;
+                const corners = [ { x: -halfW, y: -halfH }, { x: halfW, y: -halfH }, { x: halfW, y: halfH }, { x: -halfW, y: halfH } ];
+                return corners.map(c => ({
+                    x: x + (c.x * Math.cos(angle) - c.y * Math.sin(angle)),
+                    y: y + (c.x * Math.sin(angle) + c.y * Math.cos(angle))
+                }));
+            }
+
+            function update() {
+                if(gameState.over) return;
+                if (keys['KeyW']) car.speed += car.acceleration;
+                if (keys['KeyS']) car.speed -= car.acceleration * 0.7;
+                if (keys['Space']) car.speed *= (1 - car.brake);
+                car.speed *= car.friction;
+                if (Math.abs(car.speed) < 0.05) car.speed = 0;
+                if (car.speed !== 0) {
+                    const flip = car.speed > 0 ? 1 : -1;
+                    if (keys['KeyA']) car.angle -= car.turnSpeed * flip;
+                    if (keys['KeyD']) car.angle += car.turnSpeed * flip;
+                }
+                car.x += Math.cos(car.angle) * car.speed;
+                car.y += Math.sin(car.angle) * car.speed;
+
+                const carCorners = getCarCorners(car);
+                for (const wall of walls) {
+                    for (const corner of carCorners) {
+                        if (corner.x > wall.x && corner.x < wall.x + wall.width && corner.y > wall.y && corner.y < wall.y + wall.height) {
+                            car.speed = 0;
+                            gameState.over = true;
+                            feedbackEl.textContent = 'Krock! Försök igen.';
+                            feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-red-500';
+                            return;
+                        }
+                    }
+                }
+                
+                const inSpot = carCorners.every(c => c.x > parkingSpot.x && c.x < parkingSpot.x + parkingSpot.width && c.y > parkingSpot.y && c.y < parkingSpot.y + parkingSpot.height);
+                const isStraight = Math.abs(Math.cos(car.angle)) < 0.15;
+                const isSlow = Math.abs(car.speed) < 0.1;
+
+                if (inSpot && isStraight && isSlow) {
+                    gameState.over = true;
+                    gameState.win = true;
+                    feedbackEl.textContent = 'Snyggt parkerat!';
+                    feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-green-500';
+                }
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#718096';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = gameState.win ? 'rgba(74, 222, 128, 0.7)' : 'rgba(74, 222, 128, 0.4)';
+                ctx.fillRect(parkingSpot.x, parkingSpot.y, parkingSpot.width, parkingSpot.height);
+                ctx.strokeStyle = '#f7fafc';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(parkingSpot.x, parkingSpot.y, parkingSpot.width, parkingSpot.height);
+                ctx.fillStyle = '#a0aec0';
+                otherCars.forEach(oc => ctx.fillRect(oc.x, oc.y, oc.width, oc.height));
+                
+                ctx.save();
+                ctx.translate(car.x, car.y);
+                ctx.rotate(car.angle);
+                ctx.fillStyle = gameState.over && !gameState.win ? '#e53e3e' : '#3b82f6';
+                ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+                ctx.fillStyle = '#bfdbfe';
+                ctx.fillRect(-car.width/2 + 5, -car.height/2 + 3, car.width - 25, car.height - 6);
+                ctx.restore();
+            }
+
+            function gameLoop() {
+                update();
+                draw();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+
+            initGame();
+        }
     </script>
 </body>
 </html>
