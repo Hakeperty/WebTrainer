@@ -31,11 +31,13 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--background-light);
+            background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.05), transparent 30%);
             color: var(--text-light);
             transition: background-color 0.3s ease, color 0.3s ease;
         }
         .dark body {
             background-color: var(--background-dark);
+            background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), transparent 40%);
             color: var(--text-dark);
         }
         
@@ -71,9 +73,14 @@
             background-color: var(--primary-color);
             color: white !important;
             font-weight: 700;
-            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.38);
+            --glow-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 15px var(--glow-color), 0 0 5px var(--glow-color);
+
         }
-        .dark .nav-link.active { box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.28); }
+        .dark .nav-link.active { 
+            --glow-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px var(--glow-color), 0 0 8px var(--glow-color);
+        }
         .nav-link:hover .completion-icon { transform: scale(1.2); }
 
         .card {
@@ -81,14 +88,14 @@
             transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
             opacity: 0;
             transform: translateY(30px) scale(0.98);
-            animation: slideUpFadeIn 0.5s forwards;
+            animation: slideUpFadeIn 0.5s forwards cubic-bezier(0.16, 1, 0.3, 1);
         }
         .dark .card { background-color: var(--card-dark); }
         .card:hover {
-            transform: translateY(-8px) scale(1.01);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
         }
-        .dark .card:hover { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.15); }
+        .dark .card:hover { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -215,6 +222,7 @@
                     "spel-parkering": "Spel: Parkeringsscenarier", 
                     "spel-ratt-parkering": "Spel: Dra & Parkera", 
                     "spel-situationer": "Spel: Trafiksituationer",
+                    "spel-hastighet": "Spel: Gissa Hastigheten",
                     "spel-parkeringssimulator": "Spel: Parkeringssimulator",
                     "kunskapstest": "Slutprov" 
                 }
@@ -394,13 +402,26 @@
                     <button id="restart-situation-game" class="action-btn mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Ny situation</button>
                 </div>
              `,
+             "spel-hastighet": `
+                <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Spel: Gissa Hastigheten</h2>
+                <div class="card p-8 rounded-xl shadow-lg">
+                    <div id="speed-game-container"></div>
+                    <div id="speed-game-feedback" class="mt-4 text-center font-bold min-h-[100px]"></div>
+                    <button id="restart-speed-game" class="action-btn mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Ny situation</button>
+                </div>
+             `,
              "spel-parkeringssimulator": `
                 <h2 class="text-4xl font-extrabold border-b-4 border-blue-500 pb-3 mb-8">Spel: Parkeringssimulator</h2>
                 <div class="card p-8 rounded-xl shadow-lg">
+                    <p class="text-center mb-2 font-semibold">Välj en utmaning:</p>
+                    <div id="parking-level-selector" class="flex flex-wrap justify-center gap-2 mb-4">
+                        <button data-level="1" class="action-btn level-btn bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">Nivå 1: Framåt</button>
+                        <button data-level="2" class="action-btn level-btn bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Nivå 2: Backa in</button>
+                        <button data-level="3" class="action-btn level-btn bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Nivå 3: Fickparkering</button>
+                    </div>
                     <p class="text-center mb-2">Använd <strong>WASD</strong> för att köra och <strong>Mellanslag</strong> för att bromsa.</p>
                     <canvas id="parking-simulator-canvas"></canvas>
                     <div id="parking-simulator-feedback" class="mt-4 text-center font-bold text-xl h-6"></div>
-                    <button id="restart-parking-simulator" class="action-btn mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Starta om</button>
                 </div>
              `
         };
@@ -413,7 +434,9 @@
              { question: "Hur länge bör en motorvärmare vara påslagen vid 0°C?", options: ["30 minuter", "60 minuter", "90 minuter", "Den ska inte användas alls"], answer: "60 minuter", explanation: "Vid 0°C rekommenderas cirka 60 minuters användning av motorvärmare för att minska bränsleförbrukning och slitage vid kallstart." },
              { question: "Vad är den största fördelen med ABS-bromsar?", options: ["De förkortar alltid bromssträckan.", "De gör att bilen kan styras under kraftig inbromsning.", "De slits mindre än vanliga bromsar.", "De fungerar utan bromsvätska."], answer: "De gör att bilen kan styras under kraftig inbromsning.", explanation: "ABS-bromsar förhindrar att hjulen låser sig, vilket gör att du kan behålla styrförmågan och väja för hinder även under en hård inbromsning." },
              { question: "Du kommer först till en olycksplats. Vad är det första du ska göra enligt L-ABC?", options: ["Kontrollera andning.", "Stoppa blödning.", "Säkerställa att ingen är i ett livsfarligt läge.", "Förebygga chock."], answer: "Säkerställa att ingen är i ett livsfarligt läge.", explanation: "Det första steget i L-ABC är 'L' för Livsfarligt läge. Du måste först säkerställa att du och de skadade är säkra från ytterligare faror, t.ex. brinnande fordon eller efterföljande trafik." },
-             { question: "Vad innebär det om du får 'hugg i ratten'?", options: ["Det är dags att byta däck.", "Det är troligen luft eller smuts i servostyrningen.", "Bromsarna är slitna.", "Bilbatteriet är svagt."], answer: "Det är troligen luft eller smuts i servostyrningen.", explanation: "Hugg eller ryck i ratten när du svänger tyder ofta på ett problem med servostyrningen, som kan bero på luft eller föroreningar i servosystemet." }
+             { question: "Vad innebär det om du får 'hugg i ratten'?", options: ["Det är dags att byta däck.", "Det är troligen luft eller smuts i servostyrningen.", "Bromsarna är slitna.", "Bilbatteriet är svagt."], answer: "Det är troligen luft eller smuts i servostyrningen.", explanation: "Hugg eller ryck i ratten när du svänger tyder ofta på ett problem med servostyrningen, som kan bero på luft eller föroreningar i servosystemet." },
+             { question: "Vilken är den vanligaste olyckstypen vid trötthet?", options: ["Korsningsolyckor", "Omkörningsolyckor", "Singelolyckor", "Parkeringsolyckor"], answer: "Singelolyckor", explanation: "Enformig körning på t.ex. motorvägar kan leda till trötthet och att man tappar koncentrationen, vilket ökar risken för singelolyckor." },
+             { question: "Du har dubbdäck på din bil. Vilket påstående är sant om du kopplar på en släpvagn vid vinterväglag?", options: ["Släpvagnen måste också ha dubbdäck.", "Släpvagnen får ha odubbade vinterdäck.", "Släpvagnen får ha sommardäck.", "Det spelar ingen roll vilka däck släpvagnen har."], answer: "Släpvagnen måste också ha dubbdäck.", explanation: "Om dragbilen har dubbdäck måste även släpvagnen ha dubbdäck vid vinterväglag. Detta för att minska risken för fällknivsverkan." }
         ];
 
         // --- APP LOGIC ---
@@ -523,6 +546,7 @@
                 if (targetId === 'spel-parkering') setupParkingGame();
                 if (targetId === 'spel-ratt-parkering') setupInteractiveParkingGame();
                 if (targetId === 'spel-situationer') setupSituationGame();
+                if (targetId === 'spel-hastighet') setupSpeedGame();
                 if (targetId === 'spel-parkeringssimulator') setupParkingSimulator();
             }
             
@@ -686,7 +710,11 @@
 
         // --- TRAFFIC SITUATION GAME LOGIC ---
         function setupSituationGame() {
-            const situations = [ { id: 'hogerregeln', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=H%C3%B6gerregeln-korsning&font=inter', question: 'Vem ska köra först?', cars: [{id: 'A', label: 'Bil A (från höger)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'B', explanation: 'Fel! Högerregeln gäller. Du måste lämna företräde åt trafik från höger, i detta fall Bil A.' }, { id: 'huvudled', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=Huvudled&font=inter', question: 'Vem ska köra först? (Du är på huvudled)', cars: [{id: 'A', label: 'Bil A (från sidoväg)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'B', explanation: 'Rätt! Du kör på en huvudled, vilket innebär att korsande trafik (Bil A) har väjningsplikt mot dig.'}, { id: 'utfart', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=Utfart+fr%C3%A5n+P-plats&font=inter', question: 'Vem ska köra först?', cars: [{id: 'A', label: 'Bil A (kör ut från P-plats)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'B', explanation: 'Rätt! Utfartsregeln gäller. Bil A kör ut från en parkeringsplats och har väjningsplikt mot all trafik på vägen.'}, ];
+            const situations = [ 
+                { id: 'hogerregeln', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=H%C3%B6gerregeln-korsning&font=inter', question: 'Vem ska köra först?', cars: [{id: 'A', label: 'Bil A (från höger)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'A', explanation: 'Högerregeln gäller. Du (Bil B) måste lämna företräde åt trafik från höger (Bil A).' }, 
+                { id: 'huvudled', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=Huvudled&font=inter', question: 'Vem ska köra först? (Du är på huvudled)', cars: [{id: 'A', label: 'Bil A (från sidoväg)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'B', explanation: 'Du (Bil B) kör på en huvudled, vilket innebär att korsande trafik (Bil A) har väjningsplikt mot dig.'}, 
+                { id: 'utfart', img: 'https://placehold.co/600x300/e0f2fe/1e293b?text=Utfart+fr%C3%A5n+P-plats&font=inter', question: 'Vem ska köra först?', cars: [{id: 'A', label: 'Bil A (kör ut från P-plats)'}, {id: 'B', label: 'Bil B (din bil)'}], correct: 'B', explanation: 'Utfartsregeln gäller. Bil A kör ut från en parkeringsplats och har väjningsplikt mot all trafik på vägen (Bil B).'}
+            ];
             let currentSituation;
             const container = document.getElementById('situation-game-container');
             const feedbackEl = document.getElementById('situation-game-feedback');
@@ -714,110 +742,188 @@
             }
             function checkAnswer(droppedId) {
                 const isCorrect = (droppedId === currentSituation.correct);
-                const isHogerregelnFail = (currentSituation.id === 'hogerregeln' && droppedId === 'B');
-                const explanationText = isHogerregelnFail ? "Fel! Högerregeln gäller. Du måste lämna företräde åt trafik från höger, i detta fall Bil A." : currentSituation.explanation;
-
                 feedbackEl.innerHTML = `<div class="p-4 rounded-lg mt-4 ${isCorrect ? 'bg-green-100 text-green-800 dark:bg-green-900/50' : 'bg-red-100 text-red-800 dark:bg-red-900/50'}">
                     <p class="font-bold">${isCorrect ? 'Rätt!' : 'Fel!'}</p>
-                    <p>${explanationText}</p>
+                    <p>${currentSituation.explanation}</p>
                 </div>`;
                  container.querySelectorAll('.draggable-car').forEach(c => c.draggable = false);
             }
             document.getElementById('restart-situation-game').addEventListener('click', loadSituation);
             loadSituation();
         }
+
+        // --- GUESS THE SPEED GAME ---
+        function setupSpeedGame() {
+            const scenarios = [
+                { img: 'https://placehold.co/600x300/a3e635/1e293b?text=Bostadsomr%C3%A5de&font=inter', question: 'Vad är bashastigheten i ett tätbebyggt område?', options: [30, 50, 70], correct: 50, explanation: 'Bashastigheten inom tätbebyggt område är 50 km/h, men skyltar kan ange annat.' },
+                { img: 'https://placehold.co/600x300/22d3ee/1e293b?text=Landsv%C3%A4g&font=inter', question: 'Vad är bashastigheten utanför ett tätbebyggt område?', options: [50, 70, 90], correct: 70, explanation: 'Bashastigheten utanför tätbebyggt område är 70 km/h om inget annat anges.' },
+                { img: 'https://placehold.co/600x300/f87171/ffffff?text=N%C3%A4ra+skola&font=inter', question: 'Vilken hastighet är vanligast vid skolor?', options: [30, 50, 60], correct: 30, explanation: 'Runt skolor är hastigheten ofta sänkt till 30 km/h för att skydda barnen.' }
+            ];
+            let currentScenario;
+            const container = document.getElementById('speed-game-container');
+            const feedbackEl = document.getElementById('speed-game-feedback');
+
+            function loadScenario() {
+                currentScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+                feedbackEl.innerHTML = '';
+                container.innerHTML = `
+                    <p class="text-xl font-semibold mb-4 text-center">${currentScenario.question}</p>
+                    <img src="${currentScenario.img}" alt="Trafikmiljö" class="w-full rounded-lg mx-auto mb-6 max-w-md">
+                    <div class="flex justify-center flex-wrap gap-4">
+                        ${currentScenario.options.map(opt => `<button class="action-btn speed-answer-btn bg-blue-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600" data-speed="${opt}">${opt} km/h</button>`).join('')}
+                    </div>
+                `;
+                container.querySelectorAll('.speed-answer-btn').forEach(btn => btn.addEventListener('click', checkAnswer));
+            }
+            function checkAnswer(e) {
+                const selectedSpeed = parseInt(e.target.dataset.speed);
+                const isCorrect = selectedSpeed === currentScenario.correct;
+                feedbackEl.innerHTML = `<div class="p-4 rounded-lg mt-4 ${isCorrect ? 'bg-green-100 text-green-800 dark:bg-green-900/50' : 'bg-red-100 text-red-800 dark:bg-red-900/50'}">
+                    <p class="font-bold">${isCorrect ? 'Rätt!' : 'Fel!'}</p>
+                    <p>${currentScenario.explanation}</p>
+                </div>`;
+                container.querySelectorAll('button').forEach(b => b.disabled = true);
+            }
+            document.getElementById('restart-speed-game').addEventListener('click', loadScenario);
+            loadScenario();
+        }
         
         // --- PARKING SIMULATOR GAME LOGIC ---
         function setupParkingSimulator() {
             const canvas = document.getElementById('parking-simulator-canvas');
             const feedbackEl = document.getElementById('parking-simulator-feedback');
-            if (!canvas) return;
+            const levelSelector = document.getElementById('parking-level-selector');
+            if (!canvas || !levelSelector) return;
             const ctx = canvas.getContext('2d');
             
             let animationFrameId;
-            
-            // This function will be assigned to the global stopper
+            let keydownHandler, keyupHandler;
+
             const stopGameLoop = () => {
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                     animationFrameId = null;
                 }
-                 window.removeEventListener('resize', initGame);
-                 document.removeEventListener('keydown', keydownHandler);
-                 document.removeEventListener('keyup', keyupHandler);
+                if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+                if (keyupHandler) document.removeEventListener('keyup', keyupHandler);
+                window.removeEventListener('resize', resizeCanvasAndRestart);
             };
             
-            // Assign to the global stopper so it can be called from showSection
             stopCurrentGameLoop = stopGameLoop;
+
+            let currentLevel = 1;
+            function resizeCanvasAndRestart() {
+                resizeCanvas();
+                initGame(currentLevel);
+            }
 
             function resizeCanvas() {
                 const container = canvas.parentElement;
                 if (!container) return;
-                const ratio = 16 / 9;
                 canvas.width = container.clientWidth;
-                canvas.height = container.clientWidth / ratio;
+                canvas.height = canvas.width / (16 / 9);
             }
 
             let car, parkingSpot, otherCars, walls, keys, gameState;
 
-            function initGame() {
-                stopGameLoop(); // Stop previous loop if any
+            function initGame(level) {
+                currentLevel = level;
+                stopGameLoop(); 
                 resizeCanvas();
                 
-                const carWidth = 50;
-                const carHeight = 25;
+                const carWidth = canvas.width / 12;
+                const carHeight = carWidth / 2;
 
-                car = { x: canvas.width * 0.15, y: canvas.height * 0.8, width: carWidth, height: carHeight, angle: -Math.PI / 2, speed: 0, turnSpeed: 0.04, acceleration: 0.1, friction: 0.98, brake: 0.3 };
-                parkingSpot = { x: canvas.width * 0.75, y: canvas.height * 0.1, width: carWidth * 1.4, height: carHeight * 2.5 };
-                otherCars = [
-                    { x: parkingSpot.x - parkingSpot.width * 1.1, y: parkingSpot.y, width: carWidth, height: carHeight * 2.2 },
-                    { x: parkingSpot.x + parkingSpot.width * 1.1, y: parkingSpot.y, width: carWidth, height: carHeight * 2.2 }
-                ];
+                if (level == 1) { // Framåt
+                     car = { x: canvas.width * 0.5, y: canvas.height * 0.8, width: carHeight, height: carWidth, angle: -Math.PI/2, speed: 0, turnSpeed: 0.04, acceleration: 0.1, friction: 0.98, brake: 0.3 };
+                     parkingSpot = { x: canvas.width * 0.7, y: canvas.height * 0.1, width: carHeight * 1.4, height: carWidth * 1.2 };
+                     otherCars = [
+                        { x: parkingSpot.x - parkingSpot.width, y: parkingSpot.y, width: carHeight, height: carWidth },
+                        { x: parkingSpot.x + parkingSpot.width, y: parkingSpot.y, width: carHeight, height: carWidth }
+                     ];
+                } else if (level == 2) { // Backa in
+                     car = { x: canvas.width * 0.5, y: canvas.height * 0.2, width: carHeight, height: carWidth, angle: Math.PI/2, speed: 0, turnSpeed: 0.04, acceleration: 0.1, friction: 0.98, brake: 0.3 };
+                     parkingSpot = { x: canvas.width * 0.7, y: canvas.height * 0.7, width: carHeight * 1.4, height: carWidth * 1.2 };
+                     otherCars = [
+                        { x: parkingSpot.x - parkingSpot.width, y: parkingSpot.y, width: carHeight, height: carWidth },
+                        { x: parkingSpot.x + parkingSpot.width, y: parkingSpot.y, width: carHeight, height: carWidth }
+                     ];
+                } else { // Fickparkering
+                     car = { x: canvas.width * 0.8, y: canvas.height * 0.8, width: carWidth, height: carHeight, angle: Math.PI, speed: 0, turnSpeed: 0.04, acceleration: 0.1, friction: 0.98, brake: 0.3 };
+                     parkingSpot = { x: canvas.width * 0.35, y: canvas.height * 0.7, width: carWidth * 1.5, height: carHeight * 1.2 };
+                     otherCars = [
+                        { x: parkingSpot.x - carWidth * 1.05, y: parkingSpot.y, width: carWidth, height: carHeight },
+                        { x: parkingSpot.x + parkingSpot.width, y: parkingSpot.y, width: carWidth, height: carHeight }
+                     ];
+                }
+                
                 walls = [
-                    { x: 0, y: 0, width: canvas.width, height: 1 }, // Top
-                    { x: 0, y: canvas.height - 1, width: canvas.width, height: 1 }, // Bottom
-                    { x: 0, y: 0, width: 1, height: canvas.height }, // Left
-                    { x: canvas.width - 1, y: 0, width: 1, height: canvas.height }, // Right
-                    { x: otherCars[0].x, y: otherCars[0].y, width: otherCars[0].width, height: otherCars[0].height },
-                    { x: otherCars[1].x, y: otherCars[1].y, width: otherCars[1].width, height: otherCars[1].height }
+                    { x: 0, y: 0, width: canvas.width, height: 1 },
+                    { x: 0, y: canvas.height - 1, width: canvas.width, height: 1 },
+                    { x: 0, y: 0, width: 1, height: canvas.height },
+                    { x: canvas.width - 1, y: 0, width: 1, height: canvas.height },
                 ];
 
                 keys = {};
                 gameState = { over: false, win: false };
                 feedbackEl.textContent = 'Parkera i den gröna rutan!';
                 feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-slate-500 dark:text-slate-400';
+
+                keydownHandler = (e) => {
+                    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) {
+                        keys[e.code] = true;
+                        e.preventDefault();
+                    }
+                };
+                keyupHandler = (e) => {
+                    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) {
+                        keys[e.code] = false;
+                        e.preventDefault();
+                    }
+                };
+                document.addEventListener('keydown', keydownHandler);
+                document.addEventListener('keyup', keyupHandler);
+                window.addEventListener('resize', resizeCanvasAndRestart);
                 
                 gameLoop();
             }
-
-            const restartButton = document.getElementById('restart-parking-simulator');
-            if(restartButton) {
-                const newButton = restartButton.cloneNode(true);
-                restartButton.parentNode.replaceChild(newButton, restartButton);
-                newButton.addEventListener('click', initGame);
-            }
             
-            const keydownHandler = (e) => {
-                 if(e.code.startsWith('Key') || e.code === 'Space') {
-                    keys[e.code] = true;
-                    if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') e.preventDefault();
-                 }
-            };
-            const keyupHandler = (e) => { keys[e.code] = false; };
-
-            document.addEventListener('keydown', keydownHandler);
-            document.addEventListener('keyup', keyupHandler);
-            window.addEventListener('resize', initGame);
+            levelSelector.addEventListener('click', (e) => {
+                if(e.target.classList.contains('level-btn')) {
+                    const level = parseInt(e.target.dataset.level);
+                    levelSelector.querySelectorAll('.level-btn').forEach(btn => {
+                        btn.classList.replace('bg-blue-500', 'bg-gray-500');
+                        btn.classList.replace('hover:bg-blue-600', 'hover:bg-gray-600');
+                    });
+                     e.target.classList.replace('bg-gray-500', 'bg-blue-500');
+                     e.target.classList.replace('hover:bg-gray-600', 'hover:bg-blue-600');
+                    initGame(level);
+                }
+            });
 
             function getCarCorners(obj) {
                 const { x, y, width, height, angle } = obj;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
                 const halfW = width / 2;
                 const halfH = height / 2;
-                const corners = [ { x: -halfW, y: -halfH }, { x: halfW, y: -halfH }, { x: halfW, y: halfH }, { x: -halfW, y: halfH } ];
+                const corners = [
+                    { x: -halfW, y: -halfH }, { x: halfW, y: -halfH },
+                    { x: halfW, y: halfH }, { x: -halfW, y: halfH }
+                ];
                 return corners.map(c => ({
-                    x: x + (c.x * Math.cos(angle) - c.y * Math.sin(angle)),
-                    y: y + (c.x * Math.sin(angle) + c.y * Math.cos(angle))
+                    x: x + c.x * cos - c.y * sin,
+                    y: y + c.x * sin + c.y * cos
                 }));
+            }
+
+            function checkCollision(carCorners, rect) {
+                 for (const corner of carCorners) {
+                    if (corner.x > rect.x && corner.x < rect.x + rect.width && corner.y > rect.y && corner.y < rect.y + rect.height) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             function update() {
@@ -827,6 +933,7 @@
                 if (keys['Space']) car.speed *= (1 - car.brake);
                 car.speed *= car.friction;
                 if (Math.abs(car.speed) < 0.05) car.speed = 0;
+
                 if (car.speed !== 0) {
                     const flip = car.speed > 0 ? 1 : -1;
                     if (keys['KeyA']) car.angle -= car.turnSpeed * flip;
@@ -836,23 +943,29 @@
                 car.y += Math.sin(car.angle) * car.speed;
 
                 const carCorners = getCarCorners(car);
-                for (const wall of walls) {
-                    for (const corner of carCorners) {
-                        if (corner.x > wall.x && corner.x < wall.x + wall.width && corner.y > wall.y && corner.y < wall.y + wall.height) {
-                            car.speed = 0;
-                            gameState.over = true;
-                            feedbackEl.textContent = 'Krock! Försök igen.';
-                            feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-red-500';
-                            return;
-                        }
+                const allObstacles = [...walls, ...otherCars];
+                for (const obstacle of allObstacles) {
+                    if (checkCollision(carCorners, obstacle)) {
+                        car.speed = 0;
+                        gameState.over = true;
+                        feedbackEl.textContent = 'Krock! Försök igen.';
+                        feedbackEl.className = 'mt-4 text-center font-bold text-xl h-6 text-red-500';
+                        return;
                     }
                 }
                 
                 const inSpot = carCorners.every(c => c.x > parkingSpot.x && c.x < parkingSpot.x + parkingSpot.width && c.y > parkingSpot.y && c.y < parkingSpot.y + parkingSpot.height);
-                const isStraight = Math.abs(Math.cos(car.angle)) < 0.15;
+                
+                let isAligned = false;
+                if (parkingSpot.height > parkingSpot.width) { // Vertical spot
+                    isAligned = Math.abs(Math.cos(car.angle)) < 0.15;
+                } else { // Horizontal spot
+                    isAligned = Math.abs(Math.sin(car.angle)) < 0.15;
+                }
+
                 const isSlow = Math.abs(car.speed) < 0.1;
 
-                if (inSpot && isStraight && isSlow) {
+                if (inSpot && isAligned && isSlow) {
                     gameState.over = true;
                     gameState.win = true;
                     feedbackEl.textContent = 'Snyggt parkerat!';
@@ -864,13 +977,17 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#718096';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+
                 ctx.fillStyle = gameState.win ? 'rgba(74, 222, 128, 0.7)' : 'rgba(74, 222, 128, 0.4)';
                 ctx.fillRect(parkingSpot.x, parkingSpot.y, parkingSpot.width, parkingSpot.height);
                 ctx.strokeStyle = '#f7fafc';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(parkingSpot.x, parkingSpot.y, parkingSpot.width, parkingSpot.height);
-                ctx.fillStyle = '#a0aec0';
-                otherCars.forEach(oc => ctx.fillRect(oc.x, oc.y, oc.width, oc.height));
+
+                otherCars.forEach(oc => {
+                    ctx.fillStyle = '#a0aec0';
+                    ctx.fillRect(oc.x, oc.y, oc.width, oc.height);
+                });
                 
                 ctx.save();
                 ctx.translate(car.x, car.y);
@@ -883,12 +1000,16 @@
             }
 
             function gameLoop() {
+                if (!document.getElementById('parking-simulator-canvas')) {
+                    stopGameLoop();
+                    return;
+                }
                 update();
                 draw();
                 animationFrameId = requestAnimationFrame(gameLoop);
             }
 
-            initGame();
+            initGame(1); // Start with level 1 by default
         }
     </script>
 </body>
